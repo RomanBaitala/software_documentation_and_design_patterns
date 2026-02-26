@@ -1,20 +1,19 @@
-from abc import ABC, abstractmethod
+from .ibase_repository import IBaseRepository
+from ...models import Transaction
+from abc import abstractmethod
 
-class ITransactionRepository(ABC):
+class ITransactionRepository(IBaseRepository[Transaction]):
     @abstractmethod
-    def create_transaction(self, transaction):
-        pass
-    
-    @abstractmethod
-    def get_transaction_by_id(self, transaction_id):
+    def get_by_account_id(self, account_id):
         pass
 
     @abstractmethod
-    def get_transactions_by_account_id(self, account_id):
+    def get_by_receiver_account_id(self, account_id):
         pass
 
     @abstractmethod
-    def get_all_by_user_id(self, user_id):
+    def get_by_transaction_type(self, transaction_type):
         pass
+
 
     
