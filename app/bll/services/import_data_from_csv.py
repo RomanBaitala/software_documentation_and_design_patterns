@@ -14,7 +14,7 @@ class DataImportService:
         rows = self.csv_reader.read_all()
         if not rows: return
 
-        print(f"🔄 Початок імпорту {len(rows)} рядків...")
+        print(f"Початок імпорту {len(rows)} рядків...")
         user_cache = {} 
 
         try:
