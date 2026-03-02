@@ -12,12 +12,9 @@ class DataImportService:
 
     def import_all_data(self):
         rows = self.csv_reader.read_all()
-        if not rows:
-            print("CSV файл порожній або не знайдений.")
-            return
+        if not rows: return
 
-        print(f"Початок імпорту {len(rows)} рядків...")
-        
+        print(f"🔄 Початок імпорту {len(rows)} рядків...")
         user_cache = {} 
 
         try:
@@ -47,19 +44,32 @@ class DataImportService:
                     user=current_user 
                 )
                 self.account_repo.create(account)
+                db.session.flush()
 
-                if 'payment_amount' in row and row['payment_amount']:
-                    payment = Payment(
-                        amount=float(row['payment_amount']),
-                        account=account
+                tx_type = row.get('tx_type')
+                amount = float(row['tx_amount']) if row.get('tx_amount') else 0
+
+                if tx_type == 'payment':
+                    transaction = Payment(
+                        amount=amount,
+                        merchant_name=row.get('tx_merchant_name'),
+                        category=row.get('tx_category'),
+                        sender_account_id=account.id, 
+                        receiver_account_id=account.id
                     )
-                    self.tx_repo.create(payment)
+                    self.tx_repo.create(transaction)
+                
+                elif tx_type == 'transfer':
+                    transaction = Transfer(
+                        amount=amount,
+                        sender_account_id=account.id,
+                        receiver_account_id=account.id
+                    )
+                    self.tx_repo.create(transaction)
 
             db.session.commit()
-            print(f"Імпорт завершено! Оброблено рядків: {len(rows)}")
+            print(f"Імпорт завершено успішно!")
             
         except Exception as e:
             db.session.rollback()
-            print(f"Критична помилка імпорту: {e}")
-            import traceback
-            traceback.print_exc()
+            print(f"Критична помилка: {e}")
