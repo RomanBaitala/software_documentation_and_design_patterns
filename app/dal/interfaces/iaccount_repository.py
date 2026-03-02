@@ -10,3 +10,7 @@ class IAccountRepository(IBaseRepository[Account]):
     @abstractmethod
     def update_balance(self, account_id: int, new_balance: float):
         pass
+
+    @abstractmethod
+    def get_by_card_number(self, card_number: str):
+        pass
