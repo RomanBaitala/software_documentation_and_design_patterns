@@ -9,6 +9,7 @@ from app.config.ext import db
 # from app.presentation.routes.admin_routes import admin_bp
 from app.presentation.routes.user_routes import user_bp
 from app.presentation.routes.account_routes import account_bp
+from app.presentation.routes.transaction_routes import transaction_bp
 
 load_dotenv()
 
@@ -41,6 +42,7 @@ def create_app():
     # app.register_blueprint(admin_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(account_bp)
+    app.register_blueprint(transaction_bp)
 
     with app.app_context():
         db.create_all()

@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request, make_response, render_template, redirect, url_for
 from app.models.user import User
+from app.dal.repositories import user_repository
 from app.config.ext import db
 
 user_bp = Blueprint('user', __name__, url_prefix='/users')
@@ -18,6 +19,43 @@ def list_users():
     """
     users = User.query.all()
     return render_template('users/index.html', users=users)
+
+@user_bp.route('/add', methods=['GET'])
+def add_user():
+    """
+    Render users list page
+    ---
+    tags:
+      - User Web
+    responses:
+      200:
+        description: HTML page with users table
+    """
+    return render_template('users/create.html')
+
+
+@user_bp.route('/api', methods=['POST'])
+def create_user_from_form():
+    name = request.form.get('name')
+    surname = request.form.get('surname')
+    email = request.form.get('email')
+    tax_id = request.form.get('tax_id')
+    password = request.form.get('password')
+
+    new_user = User(
+      name=name,
+      email=email,
+      password=password,
+      surname=surname,
+      tax_id=tax_id
+    )
+
+    try:
+        user_repository.create(new_user)
+        return redirect(url_for('user.list_users'))
+    except Exception:
+        return "Помилка бази даних: можливо, такий Email або Tax ID вже є.", 400
+
 
 
 @user_bp.route('/api', methods=['GET'])

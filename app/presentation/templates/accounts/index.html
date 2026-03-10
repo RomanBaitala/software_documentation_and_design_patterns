@@ -32,9 +32,13 @@
                         </span>
                     </td>
                     <td class="text-end">
-                        <button class="btn btn-sm btn-outline-secondary">✏️</button>
-                        <button class="btn btn-sm btn-outline-danger" 
-                                onclick="if(confirm('Видалити рахунок?')) location.href='/accounts/api/{{ account.id }}'">🗑️</button>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-primary" title="Редагувати">✏️</button>
+                            <button class="btn btn-sm btn-outline-danger" 
+                                onclick="if(confirm('Видалити рахунок?')) 
+                                location.href='/accounts/api/{{ account.id }}'">🗑️</button>
+                        </div>
+
                     </td>
                 </tr>
                 {% else %}
