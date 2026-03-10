@@ -6,7 +6,7 @@ class AccountService(IAccountService):
     def __init__(self, acc_repo: AccountRepository):
         self.acc_repo = acc_repo
 
-    def get_total_balance(self, user_id: int) -> float:
+    def get_account_balance(self, user_id: int) -> float:
         accounts = self.acc_repo.get_all_by_user_id(user_id)
         return sum(acc.balance for acc in accounts)
 

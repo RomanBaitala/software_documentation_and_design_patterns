@@ -1,6 +1,8 @@
 from http import HTTPStatus
-from flask import Blueprint, jsonify, request, make_response, render_template
-from app.models.transaction import Transaction, Payment, Transfer
+from flask import Blueprint, jsonify, request, make_response, render_template, redirect, url_for
+from app.models import Transaction, Payment, Transfer, Account
+from app.dal.repositories import transaction_repository
+from app.bll.services import transaction_service
 from app.config.ext import db
 
 transaction_bp = Blueprint('transaction', __name__, url_prefix='/transactions')
@@ -32,7 +34,40 @@ def get_all_transactions():
     return make_response(jsonify([t.put_into_dto() for t in transactions]), HTTPStatus.OK)
 
 
+@transaction_bp.route('/create', methods=['GET', 'POST'])
+def create_transaction_from_form():
+    if request.method == 'POST':
+        try:
+          data = request.form
+          tx_type = data.get('type')
+          sender_id = int(data.get('sender_account_id'))
+          receiver_id = int(data.get('receiver_account_id'))
+          amount = float(data.get('amount'))
 
+          if tx_type == 'payment':
+              merchant_name = data.get('merchant_name', 'Unknown')
+              transaction_service.make_payment(
+                  sender_id=sender_id,
+                  merchant_id=receiver_id,
+                  amount=amount,
+                  merchant_name=merchant_name
+              )
+          else:
+              transaction_service.make_transfer(
+                  sender_id=sender_id,
+                  receiver_id=receiver_id,
+                  amount=amount
+              )
+
+          return redirect(url_for('transaction.list_transactions'))
+
+        except ValueError as e:
+          return f"Помилка бізнес-логіки: {str(e)}", 400
+        except Exception as e:
+          return f"Помилка сервера: {str(e)}", 500
+
+    accounts = Account.query.all()
+    return render_template('transactions/create.html', accounts=accounts)
 
 @transaction_bp.route('/api/<int:tx_id>', methods=['GET'])
 def get_transaction(tx_id: int):

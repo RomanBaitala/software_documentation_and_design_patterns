@@ -34,33 +34,34 @@ class Transaction(db.Model):
     @staticmethod
     def get_from_dto(dto):
         t_type = dto.get('type')
-        
+
+        ts = dto.get('timestamp')
+        if ts is None:
+            ts = datetime.now(timezone.utc)
+        elif isinstance(ts, str):
+            try:
+                ts = datetime.fromisoformat(ts)
+            except ValueError:
+                ts = datetime.now(timezone.utc)
+
+        common_params = {
+            'sender_account_id': dto['sender_account_id'],
+            'receiver_account_id': dto['receiver_account_id'],
+            'amount': dto['amount'],
+            'timestamp': ts
+        }
+
         if t_type == 'payment':
             return Payment(
-                sender_account_id=dto['sender_account_id'],
-                receiver_account_id=dto['receiver_account_id'],
-                amount=dto['amount'],
-                timestamp=dto['timestamp'],
-
+                **common_params,
                 merchant_name=dto.get('merchant_name'),
                 category=dto.get('category'),
                 is_taxable=dto.get('is_taxable', False)
             )
         elif t_type == 'transfer':
-            return Transfer(
-                sender_account_id=dto['sender_account_id'],
-                receiver_account_id=dto['receiver_account_id'],
-                amount=dto['amount'],
-                timestamp=dto['timestamp']
-            )
+            return Transfer(**common_params)
         
-        return Transaction(
-            sender_account_id=dto['sender_account_id'],
-            receiver_account_id=dto['receiver_account_id'],
-            amount=dto['amount'],
-            timestamp=dto['timestamp']
-        )
-    
+        return Transaction(**common_params)
 
 class Transfer(Transaction):
     __mapper_args__ = {

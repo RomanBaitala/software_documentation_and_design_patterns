@@ -6,9 +6,5 @@ class IAccountService(ABC):
         pass
 
     @abstractmethod
-    def block_card(self, account_id: int) -> bool:
-        pass
-
-    @abstractmethod
     def get_account_balance(self, account_id: int) -> float:
         pass

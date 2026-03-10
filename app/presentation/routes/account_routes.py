@@ -1,6 +1,6 @@
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request, make_response, render_template, redirect, url_for
-from app.models.account import Account
+from app.models import Account, User
 from app.config.ext import db
 
 account_bp = Blueprint('account', __name__, url_prefix='/accounts')
@@ -17,7 +17,21 @@ def list_accounts():
     accounts = Account.query.all()
     return render_template('accounts/index.html', accounts=accounts)
 
+@account_bp.route('/create', methods=['GET', 'POST'])
+def create_account_from_form():
+    if request.method == 'POST':
+        data = {
+            'user_id': request.form.get('user_id'),
+            'balance': request.form.get('balance', 0.0),
+            'card_number': request.form.get('card_number')
+        }
+        new_account = Account.get_from_dto(data)
+        db.session.add(new_account)
+        db.session.commit()
+        return redirect(url_for('account.list_accounts'))
 
+    users = User.query.all()
+    return render_template('accounts/create.html', users=users)
 
 @account_bp.route('/api', methods=['GET'])
 def get_all_accounts():
