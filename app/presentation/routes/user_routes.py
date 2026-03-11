@@ -1,8 +1,6 @@
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request, make_response, render_template, redirect, url_for
-from app.models.user import User
-from app.dal.repositories import user_repository
-from app.config.ext import db
+from app.bll.services import user_service
 
 user_bp = Blueprint('user', __name__, url_prefix='/users')
 
@@ -17,11 +15,11 @@ def list_users():
       200:
         description: HTML page with users table
     """
-    users = User.query.all()
+    users = user_service.get_all_users()
     return render_template('users/index.html', users=users)
 
-@user_bp.route('/add', methods=['GET'])
-def add_user():
+@user_bp.route('/add', methods=['GET', 'POST'])
+def create_user_from_form():
     """
     Render users list page
     ---
@@ -31,31 +29,20 @@ def add_user():
       200:
         description: HTML page with users table
     """
+    if request.method == 'POST':
+        name = request.form.get('name')
+        surname = request.form.get('surname')
+        email = request.form.get('email')
+        tax_id = request.form.get('tax_id')
+        password = request.form.get('password')
+
+        try:
+            user_service.register_user(name=name, email=email, password=password, surname=surname, tax_id=tax_id)
+            return redirect(url_for('user.list_users'))
+        except Exception:
+            return "Помилка бази даних: можливо, такий Email або Tax ID вже є.", 400
+        
     return render_template('users/create.html')
-
-
-@user_bp.route('/api', methods=['POST'])
-def create_user_from_form():
-    name = request.form.get('name')
-    surname = request.form.get('surname')
-    email = request.form.get('email')
-    tax_id = request.form.get('tax_id')
-    password = request.form.get('password')
-
-    new_user = User(
-      name=name,
-      email=email,
-      password=password,
-      surname=surname,
-      tax_id=tax_id
-    )
-
-    try:
-        user_repository.create(new_user)
-        return redirect(url_for('user.list_users'))
-    except Exception:
-        return "Помилка бази даних: можливо, такий Email або Tax ID вже є.", 400
-
 
 
 @user_bp.route('/api', methods=['GET'])
@@ -79,7 +66,7 @@ def get_all_users():
             }
           ]
     """
-    users = User.query.all()
+    users = user_service.get_all_users()
     return make_response(jsonify([u.put_into_dto() for u in users]), HTTPStatus.OK)
 
 
@@ -124,15 +111,14 @@ def create_user():
         description: User created
     """
     content = request.get_json()
-    new_user = User(
-        name=content.get('name'),
-        surname=content.get('surname'),
-        email=content.get('email'),
-        password=content.get('password'),
-        tax_id=content.get('tax_id')
-    )
-    db.session.add(new_user)
-    db.session.commit()
+    name=content.get('name'),
+    surname=content.get('surname'),
+    email=content.get('email'),
+    password=content.get('password'),
+    tax_id=content.get('tax_id')
+
+    new_user = user_service.register_user(name=name, email=email, password=password, surname=surname, tax_id=tax_id)
+
     return make_response(jsonify(new_user.put_into_dto()), HTTPStatus.CREATED)
 
 
@@ -154,7 +140,7 @@ def get_user(user_id: int):
       404:
         description: User not found
     """
-    user = User.query.get(user_id)
+    user = user_service.get_user_profile(user_id)
     if user is None:
         return make_response(jsonify({"error": "User not found"}), HTTPStatus.NOT_FOUND)
     return make_response(jsonify(user.put_into_dto()), HTTPStatus.OK)
@@ -163,41 +149,46 @@ def get_user(user_id: int):
 @user_bp.route('/api/<int:user_id>', methods=['PUT'])
 def update_user(user_id: int):
     """
-    Update a user by ID
-    ---
-    tags:
-      - User API
-    parameters:
-      - in: path
-        name: user_id
-        type: integer
-        required: true
-      - in: body
-        name: user
-        schema:
-          type: object
-          properties:
-            name:
-              type: string
-            surname:
-              type: string
-    responses:
-      200:
-        description: User updated
-      404:
-        description: User not found
-    """
-    user = User.query.get(user_id)
-    if user is None:
-        return make_response(jsonify({"error": "User not found"}), HTTPStatus.NOT_FOUND)
+  Update a user by ID
+  ---
+  tags:
+    - User API
+  parameters:
+    - in: path
+      name: user_id
+      type: integer
+      required: true
+    - in: body
+      name: user
+      schema:
+        type: object
+        properties:
+          name:
+            type: string
+          surname:
+            type: string
+  responses:
+    200:
+      description: User updated
+    404:
+      description: User not found
+  """
+    user = user_service.get_user_profile(user_id)
     
-    content = request.get_json()
-    user.name = content.get('name', user.name)
-    user.surname = content.get('surname', user.surname)
-    user.email = content.get('email', user.email)
-    
-    db.session.commit()
-    return make_response("User updated", HTTPStatus.OK)
+    if request.method == 'POST':
+        data = {
+            'name': request.form.get('name'),
+            'surname': request.form.get('surname'),
+            'email': request.form.get('email'),
+            'tax_id': request.form.get('tax_id')
+        }
+        try:
+            user_service.update_user(user_id, data)
+            return redirect(url_for('user.list_users'))
+        except Exception as e:
+            return f"Помилка оновлення: {str(e)}", 400
+
+    return render_template('users/edit.html', user=user)
 
 
 @user_bp.route('/api/<int:user_id>', methods=['DELETE'])
@@ -218,10 +209,9 @@ def delete_user(user_id: int):
       404:
         description: User not found
     """
-    user = User.query.get(user_id)
-    if user is None:
+    try:
+        if user_service.delete_user(user_id):
+            return make_response("User deleted", HTTPStatus.OK)
         return make_response(jsonify({"error": "User not found"}), HTTPStatus.NOT_FOUND)
-    
-    db.session.delete(user)
-    db.session.commit()
-    return make_response("User deleted", HTTPStatus.OK)
+    except Exception:
+        return make_response('Error during user deletion', HTTPStatus.INTERNAL_SERVER_ERROR)

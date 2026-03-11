@@ -3,15 +3,15 @@ from flask import Flask
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 from dotenv import load_dotenv
+from flasgger import Swagger
 
 from app.config.ext import db
-# Імпорт маршрутів (контролерів)
-# from app.presentation.routes.admin_routes import admin_bp
 from app.presentation.routes.user_routes import user_bp
 from app.presentation.routes.account_routes import account_bp
 from app.presentation.routes.transaction_routes import transaction_bp
 
 load_dotenv()
+
 
 def init_mysql_database(db_url):
     """Створює схему в MySQL, якщо її немає"""
@@ -31,6 +31,8 @@ def create_app():
                 template_folder='app/presentation/templates', 
                 static_folder='app/presentation/static')
     
+    swagger = Swagger()
+
     db_url = os.getenv("DATABASE_URL")
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -38,8 +40,8 @@ def create_app():
     init_mysql_database(db_url)
 
     db.init_app(app)
+    swagger.init_app(app)
 
-    # app.register_blueprint(admin_bp)
     app.register_blueprint(user_bp)
     app.register_blueprint(account_bp)
     app.register_blueprint(transaction_bp)

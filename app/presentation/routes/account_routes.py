@@ -95,7 +95,12 @@ def create_account():
 
 @account_bp.route('/api/<int:acc_id>', methods=['GET'])
 def get_account(acc_id: int):
-    """ Get account by ID """
+    """
+    Get account by id 
+    ---
+    tags:
+      - Account API
+    """
     account = Account.query.get(acc_id)
     if not account:
         return make_response(jsonify({"error": "Account not found"}), HTTPStatus.NOT_FOUND)
@@ -124,7 +129,12 @@ def update_account(acc_id: int):
 
 @account_bp.route('/api/<int:acc_id>', methods=['DELETE'])
 def delete_account(acc_id: int):
-    """ Delete account by ID """
+    """
+    Delete account
+    ---
+    tags:
+      - Account API
+    """
     account = Account.query.get(acc_id)
     if not account:
         return make_response(jsonify({"error": "Account not found"}), HTTPStatus.NOT_FOUND)

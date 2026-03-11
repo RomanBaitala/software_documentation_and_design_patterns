@@ -19,23 +19,14 @@ def list_transactions():
     return render_template('transactions/index.html', transactions=transactions)
 
 
-@transaction_bp.route('/api', methods=['GET'])
-def get_all_transactions():
-    """
-    Get all transactions (including Payments and Transfers)
-    ---
-    tags:
-      - Transaction API
-    responses:
-      200:
-        description: List of all transactions with specific fields
-    """
-    transactions = Transaction.query.all()
-    return make_response(jsonify([t.put_into_dto() for t in transactions]), HTTPStatus.OK)
-
-
 @transaction_bp.route('/create', methods=['GET', 'POST'])
 def create_transaction_from_form():
+    """
+    Render transactions add page
+    ---
+    tags:
+      - Transaction Web
+    """
     if request.method == 'POST':
         try:
           data = request.form
@@ -69,9 +60,33 @@ def create_transaction_from_form():
     accounts = Account.query.all()
     return render_template('transactions/create.html', accounts=accounts)
 
+
+@transaction_bp.route('/api', methods=['GET'])
+def get_all_transactions():
+    """
+    Get all transactions (including Payments and Transfers)
+    ---
+    tags:
+      - Transaction API
+    responses:
+      200:
+        description: List of all transactions with specific fields
+    """
+    transactions = Transaction.query.all()
+    return make_response(jsonify([t.put_into_dto() for t in transactions]), HTTPStatus.OK)
+
+
 @transaction_bp.route('/api/<int:tx_id>', methods=['GET'])
 def get_transaction(tx_id: int):
-    """ Get transaction by ID """
+    """
+    Get transaction by id
+    ---
+    tags:
+      - Transaction API
+    responses:
+      200:
+        description: List of all transactions with specific fields
+    """
     tx = Transaction.query.get(tx_id)
     if not tx:
         return make_response(jsonify({"error": "Transaction not found"}), HTTPStatus.NOT_FOUND)
