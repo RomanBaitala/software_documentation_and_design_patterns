@@ -172,23 +172,19 @@ def update_user(user_id: int):
       description: User updated
     404:
       description: User not found
-  """
-    user = user_service.get_user_profile(user_id)
-    
-    if request.method == 'POST':
-        data = {
-            'name': request.form.get('name'),
-            'surname': request.form.get('surname'),
-            'email': request.form.get('email'),
-            'tax_id': request.form.get('tax_id')
-        }
-        try:
-            user_service.update_user(user_id, data)
-            return redirect(url_for('user.list_users'))
-        except Exception as e:
-            return f"Помилка оновлення: {str(e)}", 400
+  """    
+    data = {
+        'name': request.form.get('name'),
+        'surname': request.form.get('surname'),
+        'email': request.form.get('email'),
+        'tax_id': request.form.get('tax_id')
+    }
+    try:
+        user_service.update_user(user_id, data)
+        return redirect(url_for('user.list_users'))
+    except Exception as e:
+        return f"Помилка оновлення: {str(e)}", 400
 
-    return render_template('users/edit.html', user=user)
 
 
 @user_bp.route('/api/<int:user_id>', methods=['DELETE'])

@@ -12,3 +12,7 @@ class ITransactionService(ABC):
     @abstractmethod
     def get_transaction_history(self, account_id: int) -> list:
         pass
+
+    @abstractmethod
+    def make_deposit(self, account_id: int, amount: float):
+        pass

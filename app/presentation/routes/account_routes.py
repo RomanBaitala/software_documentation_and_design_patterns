@@ -1,5 +1,6 @@
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request, make_response, render_template, redirect, url_for
+from app.bll.services import account_services, user_service, transaction_service
 from app.models import Account, User
 from app.config.ext import db
 
@@ -14,24 +15,37 @@ def list_accounts():
     tags:
       - Account Web
     """
-    accounts = Account.query.all()
+    accounts = account_services.get_all_accounts()
     return render_template('accounts/index.html', accounts=accounts)
 
 @account_bp.route('/create', methods=['GET', 'POST'])
 def create_account_from_form():
     if request.method == 'POST':
-        data = {
-            'user_id': request.form.get('user_id'),
-            'balance': request.form.get('balance', 0.0),
-            'card_number': request.form.get('card_number')
-        }
-        new_account = Account.get_from_dto(data)
-        db.session.add(new_account)
-        db.session.commit()
-        return redirect(url_for('account.list_accounts'))
+        user_id = request.form.get('user_id')
+        card_number = request.form.get('card_number')
 
-    users = User.query.all()
+        try:
+            account_services.open_account(user_id=user_id, card_number=card_number)
+            return redirect(url_for('user.list_users'))
+        except Exception:
+            return "Помилка бази даних", 400
+
+    users = user_service.get_all_users()
     return render_template('accounts/create.html', users=users)
+
+@account_bp.route('/deposit/<int:account_id>', methods=['GET', 'POST'])
+def deposit_money(account_id):
+    account = account_services.get_account_by_id(account_id)
+    
+    if request.method == 'POST':
+        amount = float(request.form.get('amount'))
+        try:
+            transaction_service.make_deposit(account_id, amount)
+            return redirect(url_for('account.list_accounts'))
+        except Exception as e:
+            return f"Помилка при поповненні: {str(e)}", 400
+
+    return render_template('accounts/deposit.html', account=account)
 
 @account_bp.route('/api', methods=['GET'])
 def get_all_accounts():
@@ -53,7 +67,7 @@ def get_all_accounts():
             }
           ]
     """
-    accounts = Account.query.all()
+    accounts = account_services.get_all_accounts()
     return make_response(jsonify([a.put_into_dto() for a in accounts]), HTTPStatus.OK)
 
 
@@ -86,10 +100,11 @@ def create_account():
         description: Account created
     """
     content = request.get_json()
-    new_account = Account.get_from_dto(content)
+    user_id = content.get('user_id')
+    card_number = content.get('card_number')
     
-    db.session.add(new_account)
-    db.session.commit()
+    new_account = account_services.open_account(user_id=user_id, card_number=card_number)
+    
     return make_response(jsonify(new_account.put_into_dto()), HTTPStatus.CREATED)
 
 
@@ -101,30 +116,10 @@ def get_account(acc_id: int):
     tags:
       - Account API
     """
-    account = Account.query.get(acc_id)
+    account = account_services.get_account_by_id(acc_id)
     if not account:
         return make_response(jsonify({"error": "Account not found"}), HTTPStatus.NOT_FOUND)
     return make_response(jsonify(account.put_into_dto()), HTTPStatus.OK)
-
-
-@account_bp.route('/api/<int:acc_id>', methods=['PUT'])
-def update_account(acc_id: int):
-    """
-    Update account balance or card number
-    ---
-    tags:
-      - Account API
-    """
-    account = Account.query.get(acc_id)
-    if not account:
-        return make_response(jsonify({"error": "Account not found"}), HTTPStatus.NOT_FOUND)
-    
-    content = request.get_json()
-    account.balance = content.get('balance', account.balance)
-    account.card_number = content.get('card_number', account.card_number)
-    
-    db.session.commit()
-    return make_response("Account updated", HTTPStatus.OK)
 
 
 @account_bp.route('/api/<int:acc_id>', methods=['DELETE'])
@@ -135,10 +130,9 @@ def delete_account(acc_id: int):
     tags:
       - Account API
     """
-    account = Account.query.get(acc_id)
-    if not account:
+    try:
+        if account_services.delete_account(acc_id):
+            return make_response("Account deleted", HTTPStatus.OK)
         return make_response(jsonify({"error": "Account not found"}), HTTPStatus.NOT_FOUND)
-    
-    db.session.delete(account)
-    db.session.commit()
-    return make_response("Account deleted", HTTPStatus.OK)
+    except Exception:
+        return make_response('Error during account deletion', HTTPStatus.INTERNAL_SERVER_ERROR)

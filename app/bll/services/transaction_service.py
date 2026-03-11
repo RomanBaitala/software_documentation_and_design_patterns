@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from ..interfaces.itransaction_service import ITransactionService
 from ...dal.interfaces import ITransactionRepository, IAccountRepository
-from ...models import Transfer, Payment
+from ...models import Transfer, Payment, Transaction
 
 class TransactionService(ITransactionService):
     def __init__(self, tx_repo: ITransactionRepository, acc_repo: IAccountRepository):
@@ -55,3 +55,23 @@ class TransactionService(ITransactionService):
     
     def get_transaction_history(self, account_id: int):
         return self.tx_repo.get_by_account_id(account_id)
+    
+    def make_deposit(self, account_id: int, amount: float):
+        if amount <= 0:
+            raise ValueError("Сума поповнення має бути більшою за нуль")
+
+        account = self.acc_repo.get_by_id(account_id)
+        if not account:
+            raise ValueError("Рахунок не знайдено")
+
+        account.balance += amount
+        self.acc_repo.update(account)
+
+        deposit_tx = Transaction(
+            sender_account_id=account_id,
+            receiver_account_id=account_id,
+            amount=amount,
+            type='deposit',
+            timestamp=datetime.now(timezone.utc)
+        )
+        return self.tx_repo.create(deposit_tx)

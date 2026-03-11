@@ -6,6 +6,7 @@
     <a href="/accounts/create" class="btn btn-success">
         <i class="bi bi-person-plus"></i> ➕ Додати новий рахунок
     </a>
+
 </div>
 
 <div class="card shadow">
@@ -22,7 +23,10 @@
             </thead>
             <tbody>
                 {% for account in accounts %}
-                <tr>
+                <tr class="clickable-row" 
+                    data-href="{{ url_for('account.deposit_money', account_id=account.id) }}" 
+                    style="cursor: pointer;"
+                >
                     <td>{{ account.id }}</td>
                     <td><code>{{ account.card_number }}</code></td>
                     <td>{{ account.user.name }} {{ account.user.surname }}</td>
@@ -50,4 +54,22 @@
         </table>
     </div>
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    const rows = document.querySelectorAll(".clickable-row");
+    
+    rows.forEach(row => {
+        row.addEventListener("click", () => {
+            window.location.href = row.dataset.href;
+        });
+    });
+
+    const stopElements = document.querySelectorAll(".stop-prop");
+    stopElements.forEach(el => {
+        el.addEventListener("click", (e) => {
+            e.stopPropagation();
+        });
+    });
+});
+</script>
 {% endblock %}
