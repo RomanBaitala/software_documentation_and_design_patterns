@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 class IUserService(ABC):
     @abstractmethod
-    def register_user(self, name: str, email: str, tax_id: str):
+    def register_user(self, name: str, email: str, tax_id: str, password: str, surname: str):
         pass
 
     @abstractmethod
@@ -11,4 +11,16 @@ class IUserService(ABC):
 
     @abstractmethod
     def find_by_email(self, email: str):
+        pass
+
+    @abstractmethod
+    def get_all_users(self):
+        pass
+
+    @abstractmethod
+    def update_user(self):
+        pass 
+
+    @abstractmethod
+    def delete_user(self, user_id: int):
         pass

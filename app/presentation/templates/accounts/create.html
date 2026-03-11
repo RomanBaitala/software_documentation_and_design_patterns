@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="card shadow mx-auto" style="max-width: 500px;">
+    <div class="card-header bg-primary text-white"><h4>💳 Новий рахунок</h4></div>
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label class="form-label">Власник</label>
+                <select name="user_id" class="form-select" required>
+                    {% for user in users %}
+                        <option value="{{ user.id }}">{{ user.name }} {{ user.surname }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Номер картки</label>
+                <input type="text" name="card_number" class="form-control" placeholder="16 цифр" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Початковий баланс</label>
+                <input type="number" step="0.01" name="balance" class="form-control" value="0.00">
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-success w-100">Відкрити рахунок</button>
+                <a href="{{ url_for('account.list_accounts') }}" class="btn btn-outline-secondary">Скасувати</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
