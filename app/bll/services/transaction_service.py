@@ -87,3 +87,15 @@ class TransactionService(ITransactionService):
             timestamp=datetime.now(timezone.utc)
         )
         return self.tx_repo.create(deposit_tx)
+
+    def get_all_transactions(self):
+        return self.tx_repo.get_all_with_first_date()
+    
+    def get_transaction_by_id(self, transaction_id: int):
+        transaction = self.tx_repo.get_by_id(transaction_id)
+        
+        if not transaction:
+            raise ValueError("Транзакцію не знайдено")
+        
+        return transaction
+        

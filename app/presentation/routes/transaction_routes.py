@@ -1,8 +1,7 @@
 from http import HTTPStatus
 from flask import Blueprint, jsonify, request, make_response, render_template, redirect, url_for
 from app.models import Transaction, Payment, Transfer, Account
-from app.dal.repositories import transaction_repository
-from app.bll.services import transaction_service
+from app.bll.services import transaction_service, account_services
 from app.config.ext import db
 
 transaction_bp = Blueprint('transaction', __name__, url_prefix='/transactions')
@@ -15,7 +14,7 @@ def list_transactions():
     tags:
       - Transaction Web
     """
-    transactions = Transaction.query.order_by(Transaction.timestamp.desc()).all()
+    transactions = transaction_service.get_all_transactions()
     return render_template('transactions/index.html', transactions=transactions)
 
 
@@ -57,7 +56,7 @@ def create_transaction_from_form():
         except Exception as e:
           return f"Помилка сервера: {str(e)}", 500
 
-    accounts = Account.query.all()
+    accounts = account_services.get_all_accounts()
     return render_template('transactions/create.html', accounts=accounts)
 
 
@@ -72,7 +71,7 @@ def get_all_transactions():
       200:
         description: List of all transactions with specific fields
     """
-    transactions = Transaction.query.all()
+    transactions = transaction_service.get_all_transactions()
     return make_response(jsonify([t.put_into_dto() for t in transactions]), HTTPStatus.OK)
 
 
@@ -87,7 +86,7 @@ def get_transaction(tx_id: int):
       200:
         description: List of all transactions with specific fields
     """
-    tx = Transaction.query.get(tx_id)
+    tx = transaction_service.get_transaction_by_id(tx_id)
     if not tx:
         return make_response(jsonify({"error": "Transaction not found"}), HTTPStatus.NOT_FOUND)
     return make_response(jsonify(tx.put_into_dto()), HTTPStatus.OK)
@@ -96,7 +95,7 @@ def get_transaction(tx_id: int):
 @transaction_bp.route('/api', methods=['POST'])
 def create_transaction():
     """
-    Create a new transaction (Payment or Transfer)
+    Create a new transaction (Payment or Transfer) via BLL
     ---
     tags:
       - Transaction API
@@ -105,19 +104,48 @@ def create_transaction():
         name: transaction
         schema:
           type: object
+          required: [type, sender_account_id, amount]
           properties:
-            type: {type: string, example: "payment"}
+            type: {type: string, example: "transfer", enum: ["payment", "transfer", "deposit"]}
             sender_account_id: {type: integer}
             receiver_account_id: {type: integer}
             amount: {type: number}
             merchant_name: {type: string}
             category: {type: string}
+    responses:
+      201:
+        description: Transaction created successfully
+      400:
+        description: Business logic error
     """
     content = request.get_json()
+    t_type = content.get('type')
+    
     try:
-        new_tx = Transaction.get_from_dto(content)
-        db.session.add(new_tx)
-        db.session.commit()
-        return make_response(jsonify(new_tx.put_into_dto()), HTTPStatus.CREATED)
-    except Exception as e:
+        if t_type == 'transfer':
+            result = transaction_service.make_transfer(
+                sender_id=content['sender_account_id'],
+                receiver_id=content['receiver_account_id'],
+                amount=float(content['amount'])
+            )
+        elif t_type == 'payment':
+            result = transaction_service.make_payment(
+                account_id=content['sender_account_id'],
+                amount=float(content['amount']),
+                merchant=content.get('merchant_name'),
+                category=content.get('category')
+            )
+        elif t_type == 'deposit':
+            result = transaction_service.make_deposit(
+                account_id=content['sender_account_id'],
+                amount=float(content['amount'])
+            )
+        else:
+            return jsonify({"error": "Unknown transaction type"}), HTTPStatus.BAD_REQUEST
+
+        return make_response(jsonify(result.put_into_dto()), HTTPStatus.CREATED)
+
+    except ValueError as e:
         return make_response(jsonify({"error": str(e)}), HTTPStatus.BAD_REQUEST)
+    except Exception as e:
+        return make_response(jsonify({"error": "Internal server error"}), HTTPStatus.INTERNAL_SERVER_ERROR)
