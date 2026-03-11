@@ -47,8 +47,11 @@
                     <input type="text" name="category" class="form-control" placeholder="Food, Transport...">
                 </div>
             </div>
-
-            <button type="submit" class="btn btn-primary w-100">Підтвердити</button>
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary w-100">Підтвердити</button>
+                <a href="{{ url_for('transaction.list_transactions') }}" class="btn btn-outline-secondary">Скасувати</a>
+            </div>
+            
         </form>
     </div>
 </div>

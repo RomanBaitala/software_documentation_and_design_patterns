@@ -10,6 +10,7 @@ class Transaction(db.Model):
     amount = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     type = db.Column(db.String(50))
+    category = db.Column(db.String(100), nullable=True)
 
     __mapper_args__ = {
         'polymorphic_identity': 'transaction',
@@ -61,6 +62,14 @@ class Transaction(db.Model):
         elif t_type == 'transfer':
             return Transfer(**common_params)
         
+        elif t_type == 'deposit':
+            return Deposit(
+                sender_account_id=dto['sender_account_id'],
+                receiver_account_id=dto['receiver_account_id'],
+                amount=dto['amount'],
+                timestamp=dto.get('timestamp')
+            )
+        
         return Transaction(**common_params)
 
 class Transfer(Transaction):
@@ -74,7 +83,6 @@ class Transfer(Transaction):
 
 class Payment(Transaction):
     merchant_name = db.Column(db.String(100), nullable=True)
-    category = db.Column(db.String(50), nullable=True) 
     is_taxable = db.Column(db.Boolean, default=False)
 
     __mapper_args__ = {
@@ -93,3 +101,11 @@ class Payment(Transaction):
         })
         return dto
     
+class Deposit(Transaction):
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'deposit',
+    }
+    
+    def __repr__(self):
+        return f'<Deposit {self.id} - Amount: {self.amount} to Account {self.receiver_account_id}>'

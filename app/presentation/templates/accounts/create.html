@@ -21,7 +21,11 @@
                 <label class="form-label">Початковий баланс</label>
                 <input type="number" step="0.01" name="balance" class="form-control" value="0.00">
             </div>
-            <button type="submit" class="btn btn-success w-100">Відкрити рахунок</button>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-success w-100">Відкрити рахунок</button>
+                <a href="{{ url_for('account.list_accounts') }}" class="btn btn-outline-secondary">Скасувати</a>
+            </div>
         </form>
     </div>
 </div>
