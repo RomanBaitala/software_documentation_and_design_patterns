@@ -10,6 +10,7 @@ class Transaction(db.Model):
     amount = db.Column(db.Float, nullable=False)
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False)
     type = db.Column(db.String(50))
+    category = db.Column(db.String(100), nullable=True)
 
     __mapper_args__ = {
         'polymorphic_identity': 'transaction',
@@ -34,33 +35,42 @@ class Transaction(db.Model):
     @staticmethod
     def get_from_dto(dto):
         t_type = dto.get('type')
-        
+
+        ts = dto.get('timestamp')
+        if ts is None:
+            ts = datetime.now(timezone.utc)
+        elif isinstance(ts, str):
+            try:
+                ts = datetime.fromisoformat(ts)
+            except ValueError:
+                ts = datetime.now(timezone.utc)
+
+        common_params = {
+            'sender_account_id': dto['sender_account_id'],
+            'receiver_account_id': dto['receiver_account_id'],
+            'amount': dto['amount'],
+            'timestamp': ts
+        }
+
         if t_type == 'payment':
             return Payment(
-                sender_account_id=dto['sender_account_id'],
-                receiver_account_id=dto['receiver_account_id'],
-                amount=dto['amount'],
-                timestamp=dto['timestamp'],
-
+                **common_params,
                 merchant_name=dto.get('merchant_name'),
                 category=dto.get('category'),
                 is_taxable=dto.get('is_taxable', False)
             )
         elif t_type == 'transfer':
-            return Transfer(
+            return Transfer(**common_params)
+        
+        elif t_type == 'deposit':
+            return Deposit(
                 sender_account_id=dto['sender_account_id'],
                 receiver_account_id=dto['receiver_account_id'],
                 amount=dto['amount'],
-                timestamp=dto['timestamp']
+                timestamp=dto.get('timestamp')
             )
         
-        return Transaction(
-            sender_account_id=dto['sender_account_id'],
-            receiver_account_id=dto['receiver_account_id'],
-            amount=dto['amount'],
-            timestamp=dto['timestamp']
-        )
-    
+        return Transaction(**common_params)
 
 class Transfer(Transaction):
     __mapper_args__ = {
@@ -73,7 +83,6 @@ class Transfer(Transaction):
 
 class Payment(Transaction):
     merchant_name = db.Column(db.String(100), nullable=True)
-    category = db.Column(db.String(50), nullable=True) 
     is_taxable = db.Column(db.Boolean, default=False)
 
     __mapper_args__ = {
@@ -92,3 +101,11 @@ class Payment(Transaction):
         })
         return dto
     
+class Deposit(Transaction):
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'deposit',
+    }
+    
+    def __repr__(self):
+        return f'<Deposit {self.id} - Amount: {self.amount} to Account {self.receiver_account_id}>'

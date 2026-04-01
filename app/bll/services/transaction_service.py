@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from ..interfaces.itransaction_service import ITransactionService
 from ...dal.interfaces import ITransactionRepository, IAccountRepository
-from ...models import Transfer, Payment
+from ...models import Transfer, Payment, Transaction
 
 class TransactionService(ITransactionService):
     def __init__(self, tx_repo: ITransactionRepository, acc_repo: IAccountRepository):
@@ -10,16 +10,16 @@ class TransactionService(ITransactionService):
 
     def make_transfer(self, sender_id: int, receiver_id: int, amount: float):
         if amount <= 0:
-            raise ValueError("Сума має бути додатною")
+            raise ValueError("Сума має бути більшою за нуль")
 
         sender = self.acc_repo.get_by_id(sender_id)
         receiver = self.acc_repo.get_by_id(receiver_id)
 
         if not sender or not receiver:
-            raise ValueError("Один з рахунків не знайдено")
-        
+            raise ValueError("Рахунок не знайдено")
+
         if sender.balance < amount:
-            raise ValueError("Недостатньо коштів")
+            raise ValueError("Недостатньо коштів на рахунку відправника")
 
         sender.balance -= amount
         receiver.balance += amount
@@ -27,13 +27,25 @@ class TransactionService(ITransactionService):
         self.acc_repo.update(sender)
         self.acc_repo.update(receiver)
 
-        new_transfer = Transfer(
+        debit_tx = Transfer(
             sender_account_id=sender_id,
             receiver_account_id=receiver_id,
             amount=amount,
-            timestamp=datetime.now(timezone.utc)
+            type='transfer',
+            category="Списання коштів" 
         )
-        return self.tx_repo.create(new_transfer)
+        self.tx_repo.create(debit_tx)
+
+        credit_tx = Transfer(
+            sender_account_id=sender_id,
+            receiver_account_id=receiver_id,
+            amount=amount,
+            type='transfer',
+            category="Зарахування коштів"
+        )
+        self.tx_repo.create(credit_tx)
+
+        return debit_tx
 
     def make_payment(self, sender_id: int, merchant_id: int, amount: float, merchant_name: str):
         sender = self.acc_repo.get_by_id(sender_id)
@@ -55,3 +67,35 @@ class TransactionService(ITransactionService):
     
     def get_transaction_history(self, account_id: int):
         return self.tx_repo.get_by_account_id(account_id)
+    
+    def make_deposit(self, account_id: int, amount: float):
+        if amount <= 0:
+            raise ValueError("Сума поповнення має бути більшою за нуль")
+
+        account = self.acc_repo.get_by_id(account_id)
+        if not account:
+            raise ValueError("Рахунок не знайдено")
+
+        account.balance += amount
+        self.acc_repo.update(account)
+
+        deposit_tx = Transaction(
+            sender_account_id=account_id,
+            receiver_account_id=account_id,
+            amount=amount,
+            type='deposit',
+            timestamp=datetime.now(timezone.utc)
+        )
+        return self.tx_repo.create(deposit_tx)
+
+    def get_all_transactions(self):
+        return self.tx_repo.get_all_with_first_date()
+    
+    def get_transaction_by_id(self, transaction_id: int):
+        transaction = self.tx_repo.get_by_id(transaction_id)
+        
+        if not transaction:
+            raise ValueError("Транзакцію не знайдено")
+        
+        return transaction
+        

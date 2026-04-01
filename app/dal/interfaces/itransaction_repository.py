@@ -15,5 +15,9 @@ class ITransactionRepository(IBaseRepository[Transaction]):
     def get_by_transaction_type(self, transaction_type):
         pass
 
+    @abstractmethod
+    def get_all_with_first_date(self):
+        pass
+
 
     

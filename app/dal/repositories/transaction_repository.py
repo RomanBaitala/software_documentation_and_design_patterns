@@ -14,3 +14,6 @@ class TransactionRepository(BaseRepository[Transaction], ITransactionRepository)
     
     def get_by_transaction_type(self, transaction_type):
         return self.model.query.filter_by(transaction_type=transaction_type).all()
+    
+    def get_all_with_first_date(self):
+        return self.model.query.order_by(self.model.timestamp.desc()).all()

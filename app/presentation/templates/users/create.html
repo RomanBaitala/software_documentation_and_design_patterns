@@ -1,0 +1,48 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-0">
+            <div class="card-header bg-primary text-white py-3">
+                <h4 class="mb-0">👤 Реєстрація нового користувача</h4>
+            </div>
+            <div class="card-body p-4">
+                <form action="{{ url_for('user.create_user_from_form') }}" method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ім'я</label>
+                            <input type="text" name="name" class="form-control" placeholder="Ivan" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Прізвище</label>
+                            <input type="text" name="surname" class="form-control" placeholder="Ivanov" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Електронна пошта</label>
+                        <input type="email" name="email" class="form-control" placeholder="ivan@example.com" required>
+                        <div class="form-text">Email має бути унікальним.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Податковий номер (Tax ID)</label>
+                        <input type="text" name="tax_id" class="form-control" placeholder="1234567890">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Пароль</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg">Зберегти користувача</button>
+                        <a href="{{ url_for('user.list_users') }}" class="btn btn-outline-secondary">Скасувати</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
