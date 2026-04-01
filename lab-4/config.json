@@ -1,0 +1,11 @@
+{
+  "storage_type": "console",
+  "data_file": "data.csv",
+  "redis": {
+    "host": "localhost",
+    "port": 6379
+  },
+  "kafka": {
+    "bootstrap_servers": "localhost:9092"
+  }
+}
