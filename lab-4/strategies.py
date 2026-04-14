@@ -36,6 +36,32 @@ class KafkaStrategy(StorageStrategy):
             self.producer.send('salary_topic', row)
         self.producer.flush()
 
+class FirestoreStrategy(StorageStrategy):
+    def __init__(self, collection_name, project_id=None, service_account_file=None, credentials=None):
+        from google.cloud import firestore
+        client_kwargs = {}
+
+        if service_account_file:
+            from google.oauth2 import service_account
+            creds = service_account.Credentials.from_service_account_file(service_account_file)
+            client_kwargs['credentials'] = creds
+        elif credentials is not None:
+            client_kwargs['credentials'] = credentials
+
+        if project_id is not None:
+            client_kwargs['project'] = project_id
+
+        self.client = firestore.Client(**client_kwargs)
+        self.collection = self.client.collection(collection_name)
+
+    def write(self, data: list):
+        print(f"[FIRESTORE] Збереження {len(data)} документів до колекції '{self.collection.id}'...")
+        batch = self.client.batch()
+        for row in data:
+            doc_ref = self.collection.document()
+            batch.set(doc_ref, row)
+        batch.commit()
+
 class DataExporter:
     """Контекст, який використовує стратегію"""
     def __init__(self, strategy: StorageStrategy):

@@ -1,5 +1,5 @@
 {
-  "storage_type": "console",
+  "storage_type": "firestore",
   "data_file": "data.csv",
   "redis": {
     "host": "localhost",
@@ -7,5 +7,10 @@
   },
   "kafka": {
     "bootstrap_servers": "localhost:9092"
+  },
+  "firestore": {
+    "collection_name": "$ENV_FIRESTORE_COLLECTION",
+    "project_id": "$ENV_FIRESTORE_PROJECT_ID",
+    "service_account_file": "$ENV_FIRESTORE_KEY_PATH"
   }
 }
